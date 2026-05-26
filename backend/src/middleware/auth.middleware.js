@@ -1,0 +1,30 @@
+import jwt from 'jsonwebtoken';
+import { findUserById } from '../models/user.model.js';
+
+export const requireAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token is required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await findUserById(payload.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid authorization token' });
+    }
+
+    req.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    };
+
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid authorization token' });
+  }
+};
